@@ -1,0 +1,10 @@
+venv/
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+qdrant_data/
+data/raw/
+data/parsed/
+.DS_Store
+*.log
