@@ -8,3 +8,4 @@ data/raw/
 data/parsed/
 .DS_Store
 *.log
+qdrant_data/
