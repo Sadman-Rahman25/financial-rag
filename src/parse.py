@@ -31,16 +31,27 @@ PARSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "META"]
 
 
-def get_accession_year(accession_folder_name: str) -> int:
+def get_accession_year(accession_folder: Path) -> int:
     """
-    Extract the filing year from an SEC accession number folder.
-    Format: '0000320193-25-000079' -> 2025
+    Extract the fiscal year from the SEC submission header.
+    Uses CONFORMED PERIOD OF REPORT (period end date), which is the
+    correct fiscal year regardless of when the filing was submitted.
+
+    Fallback: parse the accession number year if header is missing.
     """
-    # The middle 2-digit part is the year, e.g., '25' -> 2025
-    match = re.match(r"\d+-(\d{2})-\d+", accession_folder_name)
+    submission_file = accession_folder / "full-submission.txt"
+    if submission_file.exists():
+        with submission_file.open("r", encoding="utf-8", errors="ignore") as f:
+            header = "".join(f.readline() for _ in range(50))
+        match = re.search(r"^CONFORMED PERIOD OF REPORT:\s+(\d{4})\d{4}",
+                          header, re.MULTILINE)
+        if match:
+            return int(match.group(1))
+
+    # Fallback: accession number year (less reliable)
+    match = re.match(r"\d+-(\d{2})-\d+", accession_folder.name)
     if match:
         yy = int(match.group(1))
-        # SEC has been filing since 1990s; assume 00-50 = 2000s+, 51-99 = 1900s
         return 2000 + yy if yy < 50 else 1900 + yy
     return 0
 
