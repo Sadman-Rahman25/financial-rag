@@ -1,16 +1,23 @@
 """
-src/retrieve.py — Day 5: BM25 + dense + RRF hybrid retrieval.
+src/retrieve.py — Day 5+6: BM25 + dense + RRF hybrid + cross-encoder rerank
+                          + metadata pre-filtering (Day 6 Stage 4).
+
+For low-RAM (8 GB) machines, rerank/compare modes use a two-phase strategy:
+  Phase 1: retrieve candidates via dense/BM25/hybrid (uses embedder)
+  Phase 2: free Retriever (releases embedder), then load + run reranker
 
 Usage:
-    python -m src.retrieve --build-bm25                              # Stage 1 smoke test
-    python -m src.retrieve --query "..." --mode dense  [filters]
-    python -m src.retrieve --query "..." --mode bm25   [filters]
-    python -m src.retrieve --query "..." --mode hybrid [filters]
-    python -m src.retrieve --query "..." --mode compare [filters]    # side-by-side
+    python -m src.retrieve --build-bm25
+    python -m src.retrieve --query "..." --mode dense   [filters]
+    python -m src.retrieve --query "..." --mode bm25    [filters]
+    python -m src.retrieve --query "..." --mode hybrid  [filters]
+    python -m src.retrieve --query "..." --mode rerank  [filters]
+    python -m src.retrieve --query "..." --mode compare [filters]
 
-Filters: --ticker AAPL, --fiscal-year 2024, --chunk-type prose|table, --limit N
+Filters: --ticker AAPL, --fiscal-year 2024, --chunk-type prose|table, --auto-filter
 """
 import argparse
+import gc
 import json
 import re
 import time
@@ -29,23 +36,55 @@ from src.index import (
 )
 
 
-# Locked-in hyperparameters for Day 5
-RRF_K = 60          # Cormack et al. 2009 default
-DENSE_TOP_K = 20    # candidates pulled from dense before fusion
-SPARSE_TOP_K = 20   # candidates pulled from BM25 before fusion
+RRF_K = 60
+DENSE_TOP_K = 20
+SPARSE_TOP_K = 20
+RERANK_CANDIDATES = 20
 
 
-# =============== Stage 1: tokenizer + BM25 helpers =============== #
+# =============== Day 6 Stage 4: metadata pre-filtering =============== #
+
+_TICKER_KEYWORDS = {
+    "apple": "AAPL", "aapl": "AAPL",
+    "microsoft": "MSFT", "msft": "MSFT",
+    "nvidia": "NVDA", "nvda": "NVDA",
+    "tesla": "TSLA", "tsla": "TSLA",
+    "meta": "META", "facebook": "META",
+}
+
+def extract_filters(query: str) -> dict:
+    """Pull ticker/fiscal_year hints from a natural-language query.
+
+    Conservative rules:
+      - Ticker is set only if exactly ONE company keyword is detected.
+        Multiple tickers (e.g. "Compare Apple and Microsoft") → no ticker filter.
+      - Year matches 2020-2029, optionally prefixed with "FY".
+
+    Returns dict with optional 'ticker' and 'fiscal_year' keys (empty if none).
+    """
+    detected: dict = {}
+
+    q_lower = query.lower()
+    matches = set()
+    for kw, ticker in _TICKER_KEYWORDS.items():
+        if re.search(rf"\b{kw}\b", q_lower):
+            matches.add(ticker)
+    if len(matches) == 1:
+        detected["ticker"] = matches.pop()
+
+    # Match "2024", "FY2024", "fiscal year 2024" → 2024
+    year_match = re.search(r"(?:^|\W)(?:fy)?(202\d)\b", query, re.IGNORECASE)
+    if year_match:
+        detected["fiscal_year"] = int(year_match.group(1))
+
+    return detected
+
+
+# =============== tokenizer + BM25 helpers =============== #
 
 _SPLIT_RE = re.compile(r"\W+")
 
 def tokenize(text: str) -> list[str]:
-    """Lowercase, split on non-alphanumeric, drop tokens shorter than 2 chars.
-
-    Preserves: 'iPhone' -> 'iphone', 'GAAP' -> 'gaap', 'FY2024' -> 'fy2024'.
-    Drops: 'U.S.' (becomes 'u','s' both <2 char), '$7.7' (becomes '7','7' both <2 char).
-    No stemming, no stopwords.
-    """
     return [t for t in _SPLIT_RE.split(text.lower()) if len(t) >= 2]
 
 
@@ -60,25 +99,20 @@ def _load_chunks() -> list[dict]:
 
 
 def _smoke_test_bm25() -> None:
-    """Stage 1 verification: build BM25, run a tiny test query."""
     print("Loading chunks...", flush=True)
     chunks = _load_chunks()
     print(f"  Loaded {len(chunks)} chunks.", flush=True)
-
     sample = chunks[0]["text"][:200]
     print(f"\nSample text (first 200 chars):\n  {sample!r}")
     print(f"\nTokenized (first 20 tokens):\n  {tokenize(sample)[:20]}")
-
     print(f"\nTokenizing {len(chunks)} chunks...", flush=True)
     t = time.time()
     tokenized_corpus = [tokenize(c["text"]) for c in chunks]
     print(f"  Tokenized in {time.time()-t:.2f}s", flush=True)
-
     print(f"Building BM25 index...", flush=True)
     t = time.time()
     bm25 = BM25Okapi(tokenized_corpus)
     print(f"  Built in {time.time()-t:.2f}s", flush=True)
-
     query = "iPhone revenue"
     print(f"\nSmoke-test query: {query!r}")
     query_tokens = tokenize(query)
@@ -95,28 +129,10 @@ def _smoke_test_bm25() -> None:
     print("\nOK: BM25 index builds and produces plausible results.")
 
 
-# =============== Stage 3: RRF fusion =============== #
+# =============== RRF =============== #
 
-def rrf_fuse(
-    ranked_lists: list[list[dict]],
-    list_names: list[str],
-    k: int = RRF_K,
-) -> list[dict]:
-    """Reciprocal Rank Fusion (Cormack et al., 2009).
-
-    For each ranked list, walk by rank r (0-indexed). For each doc at rank r,
-    add 1 / (k + r + 1) to its accumulated score. Sort docs by accumulated
-    score descending. Docs appearing in MULTIPLE lists get boosted.
-
-    Args:
-        ranked_lists: list of result lists; each item is {id, score, payload}
-        list_names:   parallel list of human names (e.g. ["dense", "bm25"])
-        k:            RRF damping constant (60 is the de facto standard)
-
-    Returns:
-        Fused list, each item: {id, score (RRF), payload, sources (debug)}
-    """
-    assert len(ranked_lists) == len(list_names), "names must match lists"
+def rrf_fuse(ranked_lists, list_names, k=RRF_K):
+    assert len(ranked_lists) == len(list_names)
     fused: dict[int, dict] = {}
     for retriever_name, results in zip(list_names, ranked_lists):
         for rank, r in enumerate(results):
@@ -133,28 +149,21 @@ def rrf_fuse(
     return sorted(fused.values(), key=lambda x: -x["score"])
 
 
-# =============== Stage 2 + 3: Retriever class =============== #
+# =============== Retriever =============== #
 
 class Retriever:
-    """Holds the embedder, BM25 index, and Qdrant client. Build once, reuse."""
-
     def __init__(self) -> None:
         print("Initializing retriever...", flush=True)
         t0 = time.time()
-
         self.chunks = _load_chunks()
         print(f"  Loaded {len(self.chunks)} chunks", flush=True)
-
         t = time.time()
         tokenized_corpus = [tokenize(c["text"]) for c in self.chunks]
         self.bm25 = BM25Okapi(tokenized_corpus)
         print(f"  Built BM25 index in {time.time()-t:.2f}s", flush=True)
-
         self.client = get_qdrant_client()
         print(f"  Qdrant client opened", flush=True)
-
         self.embedder = get_embedder()
-
         print(f"Retriever ready ({time.time()-t0:.1f}s total)\n", flush=True)
 
     def _build_qdrant_filter(self, ticker, fiscal_year, chunk_type) -> Optional[Filter]:
@@ -167,7 +176,7 @@ class Retriever:
             conditions.append(FieldCondition(key="chunk_type", match=MatchValue(value=chunk_type)))
         return Filter(must=conditions) if conditions else None
 
-    def _passes_filter(self, meta: dict, ticker, fiscal_year, chunk_type) -> bool:
+    def _passes_filter(self, meta, ticker, fiscal_year, chunk_type):
         if ticker and meta.get("ticker") != ticker:
             return False
         if fiscal_year is not None and meta.get("fiscal_year") != fiscal_year:
@@ -177,7 +186,6 @@ class Retriever:
         return True
 
     def dense_search(self, query, limit=5, ticker=None, fiscal_year=None, chunk_type=None):
-        """Semantic search via BGE-large + Qdrant."""
         vec = self.embedder.encode(query, normalize_embeddings=True)
         qfilter = self._build_qdrant_filter(ticker, fiscal_year, chunk_type)
         response = self.client.query_points(
@@ -192,7 +200,6 @@ class Retriever:
         ]
 
     def bm25_search(self, query, limit=5, ticker=None, fiscal_year=None, chunk_type=None):
-        """Keyword search via BM25. Filters applied post-hoc in Python."""
         query_tokens = tokenize(query)
         if not query_tokens:
             return []
@@ -216,7 +223,6 @@ class Retriever:
         return results
 
     def hybrid_search(self, query, limit=5, ticker=None, fiscal_year=None, chunk_type=None):
-        """Run dense + BM25 (each pulling top-K candidates), fuse with RRF, return top-`limit`."""
         dense = self.dense_search(
             query, limit=DENSE_TOP_K,
             ticker=ticker, fiscal_year=fiscal_year, chunk_type=chunk_type,
@@ -228,18 +234,10 @@ class Retriever:
         fused = rrf_fuse([dense, sparse], ["dense", "bm25"], k=RRF_K)
         return fused[:limit]
 
-    def compare(self, query, limit=5, ticker=None, fiscal_year=None, chunk_type=None):
-        """Run all three modes; useful for spot-checking on Day 5."""
-        return {
-            "dense":  self.dense_search(query, limit, ticker, fiscal_year, chunk_type),
-            "bm25":   self.bm25_search(query, limit, ticker, fiscal_year, chunk_type),
-            "hybrid": self.hybrid_search(query, limit, ticker, fiscal_year, chunk_type),
-        }
 
+# =============== pretty-print =============== #
 
-# =============== pretty-print + CLI =============== #
-
-def print_results(results: list[dict], mode: str) -> None:
+def print_results(results, mode):
     print(f"\nTop {len(results)} results ({mode}):")
     print("-" * 100)
     for i, r in enumerate(results, 1):
@@ -247,10 +245,14 @@ def print_results(results: list[dict], mode: str) -> None:
         text = meta.get("text", "")
         preview = text[:240].replace("\n", " ").strip()
         section = meta.get("section", "")[:90]
+        if "rerank_score" in r:
+            score_str = f"rerank={r['rerank_score']:.4f} rrf={r['score']:.4f}"
+        else:
+            score_str = f"score={r['score']:.4f}"
         sources_str = ""
         if r.get("sources"):
             sources_str = f"  [from: {', '.join(r['sources'])}]"
-        print(f"[{i}] id={r['id']} score={r['score']:.4f}{sources_str} | "
+        print(f"[{i}] id={r['id']} {score_str}{sources_str} | "
               f"{meta.get('ticker')} FY{meta.get('fiscal_year')} | "
               f"{meta.get('chunk_type')} | {meta.get('n_tokens')} tok")
         print(f"    Section:    {section}")
@@ -260,45 +262,98 @@ def print_results(results: list[dict], mode: str) -> None:
         print()
 
 
-def print_compare(by_mode: dict[str, list[dict]]) -> None:
-    """Print results from all three modes back-to-back. Easier than three windows."""
-    for mode in ("dense", "bm25", "hybrid"):
+def print_compare(by_mode):
+    for mode in ("dense", "bm25", "hybrid", "rerank"):
+        if mode not in by_mode:
+            continue
         print("\n" + "=" * 100)
         print(f"=== MODE: {mode.upper()} ===")
         print("=" * 100)
         print_results(by_mode[mode], mode=mode)
 
 
+# =============== CLI =============== #
+
+def _resolve_filters(args) -> dict:
+    """Merge explicit CLI filters with --auto-filter detection. Explicit wins."""
+    filters = dict(
+        ticker=args.ticker,
+        fiscal_year=args.fiscal_year,
+        chunk_type=args.chunk_type,
+    )
+    if args.auto_filter and args.query:
+        auto = extract_filters(args.query)
+        if auto:
+            print(f"Auto-detected from query: {auto}", flush=True)
+            for k, v in auto.items():
+                if filters.get(k) is None:
+                    filters[k] = v
+            print(f"Final filters: { {k: v for k, v in filters.items() if v is not None} }\n",
+                  flush=True)
+        else:
+            print(f"Auto-filter: nothing detected from query.\n", flush=True)
+    return filters
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--build-bm25", action="store_true",
-                        help="Stage 1: smoke-test BM25 build (no Qdrant, no embedder)")
+    parser.add_argument("--build-bm25", action="store_true")
     parser.add_argument("--query", type=str, default=None)
     parser.add_argument("--mode", type=str, default="dense",
-                        choices=["dense", "bm25", "hybrid", "compare"])
+                        choices=["dense", "bm25", "hybrid", "rerank", "compare"])
     parser.add_argument("--ticker", type=str, default=None)
     parser.add_argument("--fiscal-year", type=int, default=None)
     parser.add_argument("--chunk-type", type=str, default=None, choices=[None, "prose", "table"])
+    parser.add_argument("--auto-filter", action="store_true",
+                        help="Auto-detect ticker/fiscal_year from query text")
     parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()
 
     if args.build_bm25:
         _smoke_test_bm25()
-    elif args.query is not None:
-        retriever = Retriever()
-        kwargs = dict(
-            limit=args.limit,
-            ticker=args.ticker,
-            fiscal_year=args.fiscal_year,
-            chunk_type=args.chunk_type,
-        )
-        if args.mode == "dense":
-            print_results(retriever.dense_search(args.query, **kwargs), mode="dense")
-        elif args.mode == "bm25":
-            print_results(retriever.bm25_search(args.query, **kwargs), mode="bm25")
-        elif args.mode == "hybrid":
-            print_results(retriever.hybrid_search(args.query, **kwargs), mode="hybrid")
-        elif args.mode == "compare":
-            print_compare(retriever.compare(args.query, **kwargs))
-    else:
+    elif args.query is None:
         parser.print_help()
+    else:
+        filter_kwargs = _resolve_filters(args)
+
+        if args.mode in ("dense", "bm25", "hybrid"):
+            retriever = Retriever()
+            full_kwargs = dict(limit=args.limit, **filter_kwargs)
+            if args.mode == "dense":
+                print_results(retriever.dense_search(args.query, **full_kwargs), mode="dense")
+            elif args.mode == "bm25":
+                print_results(retriever.bm25_search(args.query, **full_kwargs), mode="bm25")
+            else:
+                print_results(retriever.hybrid_search(args.query, **full_kwargs), mode="hybrid")
+
+        elif args.mode == "rerank":
+            retriever = Retriever()
+            candidates = retriever.hybrid_search(
+                args.query, limit=RERANK_CANDIDATES, **filter_kwargs
+            )
+            print("Freeing retriever (embedder + BM25) to make room for reranker...", flush=True)
+            del retriever
+            gc.collect()
+            from src.rerank import Reranker
+            reranker = Reranker()
+            results = reranker.rerank(args.query, candidates, top_k=args.limit)
+            print_results(results, mode="rerank")
+
+        elif args.mode == "compare":
+            retriever = Retriever()
+            full_kwargs = dict(limit=args.limit, **filter_kwargs)
+            by_mode = {
+                "dense":  retriever.dense_search(args.query, **full_kwargs),
+                "bm25":   retriever.bm25_search(args.query, **full_kwargs),
+                "hybrid": retriever.hybrid_search(args.query, **full_kwargs),
+            }
+            rerank_candidates = retriever.hybrid_search(
+                args.query, limit=RERANK_CANDIDATES, **filter_kwargs
+            )
+            print("\nFreeing retriever (embedder + BM25) to make room for reranker...", flush=True)
+            del retriever
+            gc.collect()
+            from src.rerank import Reranker
+            reranker = Reranker()
+            by_mode["rerank"] = reranker.rerank(args.query, rerank_candidates, top_k=args.limit)
+            print_compare(by_mode)
