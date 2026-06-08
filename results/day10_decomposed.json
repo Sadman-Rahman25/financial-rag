@@ -1,0 +1,280 @@
+{
+  "n_questions": 4,
+  "n_answered": 4,
+  "n_refused": 0,
+  "n_errors": 0,
+  "mode": "hybrid",
+  "top_k": 10,
+  "temperature": 0.2,
+  "delay_between_requests": 0.5,
+  "this_run_usage": {
+    "prompt_tokens": 19658,
+    "completion_tokens": 1073,
+    "total_tokens": 20731
+  },
+  "this_run_timing_seconds": {
+    "init": 19.9,
+    "loop": 46.56,
+    "total": 66.46
+  },
+  "results": {
+    "q13": {
+      "question": "Compare NVIDIA's and Microsoft's data center business focus.",
+      "category": "cross_company_comparison",
+      "expected_filters": null,
+      "reference_answer": "NVIDIA frames its data center business as the core of the company, described as a data center scale AI infrastructure company reshaping all industries (Item 1 Business), with end-market Data Center revenue of $193.74 billion in FY2026. Microsoft frames its data center business as the Intelligent Cloud segment ($105.36 billion in FY2024 per Segment Results of Operations), centered on Azure cloud services and server products, with growth driven by Azure consumption-based services (+30% FY2024). NVIDIA's focus is infrastructure (GPUs, networking, full-stack systems); Microsoft's focus is software and cloud services running on that infrastructure.",
+      "reference_chunk_ids": [
+        2310,
+        2306,
+        1438
+      ],
+      "generated": {
+        "answer": "NVIDIA is focused on accelerating compute-intensive workloads, such as AI, data analytics, graphics, and scientific computing, delivering significantly better performance and power efficiency relative to conventional CPU-only approaches, as seen in their data center business [chunk_2011]. Their Data Center platform is deployed in cloud, hyperscale, on-premises, and edge data centers, and consists of compute and networking offerings, including supercomputing platforms and servers, bringing together energy-efficient GPUs, CPUs, interconnects, and fully optimized AI and HPC software stacks [chunk_2011]. Microsoft, on the other hand, has a broad range of products and services, including server products and cloud services, but does not specifically highlight a data center-focused business like NVIDIA [chunk_1715]. However, Microsoft does mention its Intelligent Cloud segment, which includes public, private, and hybrid server products and cloud services, comprising Azure and other cloud services [chunk_1715]. In comparison, while both companies have a presence in the cloud and data center markets, NVIDIA's focus on accelerated computing and AI solutions for data centers is more pronounced, with a dedicated Data Center platform and specific products like the Blackwell architecture [chunk_2408]. Microsoft's approach, as described, seems more generalized towards cloud growth and server products, without the same level of specialization in data center compute and networking for AI and HPC workloads.",
+        "citations": [
+          2408,
+          2011,
+          1715
+        ],
+        "refused": false,
+        "retrieved_chunk_ids": [
+          2408,
+          2310,
+          2012,
+          2011,
+          2114,
+          1789,
+          1354,
+          1715,
+          1358,
+          1336
+        ],
+        "mode": "hybrid",
+        "top_k": 5,
+        "decomposed": true,
+        "entities": [
+          "NVDA",
+          "MSFT"
+        ],
+        "timing_ms": {
+          "retrieve": 587.6,
+          "generate": 2054.1
+        },
+        "usage": {
+          "prompt_tokens": 4729,
+          "completion_tokens": 320,
+          "total_tokens": 5049
+        },
+        "entity_chunk_map": {
+          "NVDA": [
+            2408,
+            2310,
+            2012,
+            2011,
+            2114
+          ],
+          "MSFT": [
+            1789,
+            1354,
+            1715,
+            1358,
+            1336
+          ]
+        }
+      }
+    },
+    "q14": {
+      "question": "How do Apple and Meta differ in their approach to advertising revenue?",
+      "category": "cross_company_comparison",
+      "expected_filters": null,
+      "reference_answer": "Meta generates substantially all of its revenue from advertising \u2014 $160.63 billion of FY2024 total revenue of $164.50 billion (Item 7 / Cost of Revenue and Operating Expenses), displayed on Facebook, Instagram, Messenger, and third-party mobile apps. Apple does not break out advertising revenue separately; ad-related revenue (Search Ads, App Store Search, Apple News+, Apple TV+ ads) is bundled into Services net sales ($96.17 billion FY2024). The corpus reflects this asymmetry \u2014 Meta has dozens of advertising-focused chunks while Apple's advertising treatment is buried in Services discussion. Apple's influence on Meta is also noted in Meta's risk factors: Apple's privacy/tracking changes (ATT) have adversely affected Meta's ad targeting effectiveness.",
+      "reference_chunk_ids": [
+        639,
+        1124,
+        454
+      ],
+      "generated": {
+        "answer": "Apple's approach to advertising revenue is based on its own advertising platforms and third-party licensing arrangements [chunk_8]. The company's advertising services are part of its broader services segment, which also includes AppleCare, Cloud Services, Digital Content, and Payment Services [chunk_177]. In contrast, Meta generates substantially all of its revenue from advertising, with a focus on displaying ad products on Facebook, Instagram, Messenger, and third-party mobile applications [chunk_639]. Meta's advertising revenue has been negatively impacted by changes to mobile operating systems, such as Apple's iOS, which have limited the ability to target and measure ads [chunk_923]. Overall, while both companies have advertising revenue streams, they differ significantly in their approach and scope, with Apple's advertising being a smaller part of its broader services segment and Meta's advertising being its primary source of revenue.",
+        "citations": [
+          8,
+          177,
+          639,
+          923
+        ],
+        "refused": false,
+        "retrieved_chunk_ids": [
+          13,
+          177,
+          29,
+          8,
+          209,
+          923,
+          639,
+          454,
+          847,
+          461
+        ],
+        "mode": "hybrid",
+        "top_k": 5,
+        "decomposed": true,
+        "entities": [
+          "AAPL",
+          "META"
+        ],
+        "timing_ms": {
+          "retrieve": 432.5,
+          "generate": 1404.6
+        },
+        "usage": {
+          "prompt_tokens": 5050,
+          "completion_tokens": 210,
+          "total_tokens": 5260
+        },
+        "entity_chunk_map": {
+          "AAPL": [
+            13,
+            177,
+            29,
+            8,
+            209
+          ],
+          "META": [
+            923,
+            639,
+            454,
+            847,
+            461
+          ]
+        }
+      }
+    },
+    "q15": {
+      "question": "Compare Tesla's and NVIDIA's R&D spending priorities.",
+      "category": "cross_company_comparison",
+      "expected_filters": null,
+      "reference_answer": "NVIDIA's R&D priorities center on accelerated computing platforms \u2014 chip design, GPU architecture, networking (post-Mellanox), and full-stack AI infrastructure systems including Blackwell (FY2026 platform). NVIDIA frames itself as a data center scale AI infrastructure company with R&D spanning hardware (GPUs, DPUs, networking) and software (CUDA, AI Enterprise platform). Tesla's R&D priorities focus on AI software, autonomous driving (FSD/Robotaxi/Cybercab), battery technology, vertically-integrated supply chain, and energy storage products (Powerhub). Both companies position R&D as strategic platform investment, but NVIDIA's R&D yields infrastructure sold to others, while Tesla's R&D feeds vertically-integrated products.",
+      "reference_chunk_ids": [
+        2306,
+        2408,
+        2876
+      ],
+      "generated": {
+        "answer": "Tesla's R&D spending priorities are focused on AI, energy generation, and autonomous vehicles, as seen in their investments in Cortex, a training cluster at Gigafactory Texas, and the development of new energy storage products [chunk_2876]. They are also committed to sustainability, with a goal of reducing carbon emissions and promoting the use of renewable energy sources [chunk_2594]. In contrast, NVIDIA's R&D priorities are centered around AI, data center infrastructure, and gaming technologies, with a focus on developing new architectures such as the NVIDIA Blackwell and Rubin platforms [chunk_2312]. NVIDIA's products and services are designed to support a wide range of applications, from gaming and professional visualization to data center computing and autonomous vehicles [chunk_2010]. Overall, while both companies are investing in AI and sustainability, their R&D priorities reflect their different business focuses and areas of expertise. Tesla is primarily focused on the automotive and energy sectors, while NVIDIA is focused on the tech industry, including gaming, data center infrastructure, and professional visualization.",
+        "citations": [
+          2876,
+          2594,
+          2312,
+          2010
+        ],
+        "refused": false,
+        "retrieved_chunk_ids": [
+          2595,
+          2819,
+          2876,
+          2594,
+          2822,
+          2010,
+          2310,
+          2036,
+          2312,
+          2014
+        ],
+        "mode": "hybrid",
+        "top_k": 5,
+        "decomposed": true,
+        "entities": [
+          "TSLA",
+          "NVDA"
+        ],
+        "timing_ms": {
+          "retrieve": 468.8,
+          "generate": 13879.4
+        },
+        "usage": {
+          "prompt_tokens": 4972,
+          "completion_tokens": 245,
+          "total_tokens": 5217
+        },
+        "entity_chunk_map": {
+          "TSLA": [
+            2595,
+            2819,
+            2876,
+            2594,
+            2822
+          ],
+          "NVDA": [
+            2010,
+            2310,
+            2036,
+            2312,
+            2014
+          ]
+        }
+      }
+    },
+    "q16": {
+      "question": "How do Microsoft and NVIDIA describe their AI strategy?",
+      "category": "cross_company_comparison",
+      "expected_filters": null,
+      "reference_answer": "NVIDIA's AI strategy centers on extending its technology and platform leadership in AI through a complete end-to-end accelerated computing platform addressing both training and inferencing, sold to all major hyperscalers and AI labs. NVIDIA positions itself as the foundational infrastructure provider \u2014 GPUs, networking, software stack (CUDA, AI Enterprise) \u2014 enabling generative and agentic AI workloads. Microsoft's AI strategy is application-layer focused: Copilot products across the stack (Microsoft 365 Copilot, Copilot for Security, GitHub Copilot, Windows 365), Azure OpenAI Service as a foundation model offering, and AI infrastructure built on NVIDIA hardware in Azure data centers. Microsoft frames AI as the Future Opportunity driving Microsoft Cloud growth, while NVIDIA frames AI as the workload that demands its accelerated computing platform.",
+      "reference_chunk_ids": [
+        2017,
+        2306,
+        1340
+      ],
+      "generated": {
+        "answer": "Microsoft describes its AI strategy as focused on helping customers use the breadth and depth of the Microsoft Cloud to get the most value out of their digital spend while leading the AI platform wave across their solution areas [chunk_1711]. The company is investing significant resources in transforming the workplace, building and running cloud-based services, applying AI and ambient intelligence, and providing training on generative AI [chunk_1711]. Microsoft's AI platform, Azure AI, is helping organizations transform, bringing intelligence and insights to the hands of their employees and customers [chunk_1338]. On the other hand, NVIDIA's AI strategy is centered around its platform approach, bringing together hardware, systems, software, algorithms, libraries, AI models, and training data sets, and services to create unique value for the markets it serves [chunk_2017]. NVIDIA provides a complete, end-to-end accelerated computing platform for AI, addressing both training and inferencing, and offers tools such as NVIDIA NIM, NVIDIA NeMo, and AI Blueprints to enable organizations to securely develop and run AI applications [chunk_2017]. Comparing the two companies, Microsoft's AI strategy seems more focused on integrating AI into its existing cloud and productivity solutions, while NVIDIA's approach is more centered around its accelerated computing platform and the development of AI-specific hardware and software solutions.",
+        "citations": [
+          1711,
+          1338,
+          2017
+        ],
+        "refused": false,
+        "retrieved_chunk_ids": [
+          1345,
+          1711,
+          1338,
+          1340,
+          1339,
+          2017,
+          2307,
+          2310,
+          2008,
+          2316
+        ],
+        "mode": "hybrid",
+        "top_k": 5,
+        "decomposed": true,
+        "entities": [
+          "MSFT",
+          "NVDA"
+        ],
+        "timing_ms": {
+          "retrieve": 325.4,
+          "generate": 25892.5
+        },
+        "usage": {
+          "prompt_tokens": 4907,
+          "completion_tokens": 298,
+          "total_tokens": 5205
+        },
+        "entity_chunk_map": {
+          "MSFT": [
+            1345,
+            1711,
+            1338,
+            1340,
+            1339
+          ],
+          "NVDA": [
+            2017,
+            2307,
+            2310,
+            2008,
+            2316
+          ]
+        }
+      }
+    }
+  }
+}

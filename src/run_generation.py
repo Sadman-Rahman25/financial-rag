@@ -44,6 +44,12 @@ def main() -> None:
                         help="Seconds to sleep between requests (rate-limit safety)")
     parser.add_argument("--resume", action="store_true",
                         help="Skip questions with successful prior results in --output")
+    parser.add_argument("--category", type=str, default=None,
+                        help="If set, only process questions matching this category")
+    parser.add_argument("--no-decompose", action="store_true",
+                        help="Disable auto-decomposition (forces single-question path)")
+    parser.add_argument("--top-k-per-entity", type=int, default=5,
+                        help="Per-entity top-K when decomposition triggers (default 5)")
     args = parser.parse_args()
 
     print(f"Eval set:    {EVAL_PATH}")
@@ -55,6 +61,10 @@ def main() -> None:
     print(f"Resume:      {args.resume}")
 
     all_questions = load_questions()
+    if args.category:
+        n_before = len(all_questions)
+        all_questions = [q for q in all_questions if q.get("category") == args.category]
+        print(f"** Filtered to category={args.category}: {len(all_questions)} of {n_before} questions **")
     if args.limit:
         all_questions = all_questions[: args.limit]
         print(f"\n** Limited to first {args.limit} questions **")
@@ -109,6 +119,8 @@ def main() -> None:
                 q["question"],
                 mode=args.mode,
                 top_k=args.top_k,
+                decompose=not args.no_decompose,
+                top_k_per_entity=args.top_k_per_entity,
                 filters=filters,
                 temperature=args.temperature,
             )
