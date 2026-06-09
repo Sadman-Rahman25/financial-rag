@@ -73,9 +73,12 @@ def extract_filters(query: str) -> dict:
         detected["ticker"] = matches.pop()
 
     # Match "2024", "FY2024", "fiscal year 2024" → 2024
-    year_match = re.search(r"(?:^|\W)(?:fy)?(202\d)\b", query, re.IGNORECASE)
-    if year_match:
-        detected["fiscal_year"] = int(year_match.group(1))
+    # When multiple years appear (e.g. "from 2023 to 2024", "2024 vs 2023"),
+    # use the later one - the question asks about that reporting period, and
+    # the later year's 10-K typically contains both as comparatives.
+    all_years = re.findall(r"(?:^|\W)(?:fy)?(202\d)\b", query, re.IGNORECASE)
+    if all_years:
+        detected["fiscal_year"] = max(int(y) for y in all_years)
 
     return detected
 
