@@ -1,21 +1,21 @@
 {
   "n_questions": 28,
-  "n_answered": 23,
-  "n_refused": 5,
+  "n_answered": 24,
+  "n_refused": 4,
   "n_errors": 0,
   "mode": "hybrid",
   "top_k": 10,
   "temperature": 0.2,
   "delay_between_requests": 0.5,
   "this_run_usage": {
-    "prompt_tokens": 4403,
-    "completion_tokens": 29,
-    "total_tokens": 4432
+    "prompt_tokens": 4269,
+    "completion_tokens": 91,
+    "total_tokens": 4360
   },
   "this_run_timing_seconds": {
-    "init": 18.81,
-    "loop": 1.12,
-    "total": 19.93
+    "init": 27.93,
+    "loop": 4.99,
+    "total": 32.92
   },
   "results": {
     "q01": {
@@ -761,15 +761,18 @@
         "ticker": "NVDA",
         "fiscal_year": 2026
       },
-      "reference_answer": "NVIDIA's revenue from sales to customers headquartered outside the United States accounted for 31%, 41%, and 48% of total revenue for fiscal years 2026, 2025, and 2024 respectively (per Notes to Consolidated Financial Statements, Item 1). The shift toward higher US-attributed revenue in FY2025 and FY2026 was driven primarily by US-based Compute & Networking segment demand. In Q3 FY2026, NVIDIA changed geographic revenue attribution from billing location to customer headquarters location, with prior periods restated; 76% of Data Center revenue from Taiwan-headquartered customers was estimated to flow to US and European end customers. Customer concentration is also high \u2014 for FY2026, two direct customers represented 22% and 14% of total revenue, primarily in the Compute & Networking segment.",
+      "reference_answer": "NVIDIA's FY2026 revenue by geographic region (customer headquarters location, per Item 1 Business / Notes to the Consolidated Financial Statements, Geographic Revenue table): United States $149,617M, Taiwan $42,345M, China (including Hong Kong) $19,677M, Other $4,299M, totaling $215,938M. In Q3 FY2026 NVIDIA changed methodology to base attribution on customer headquarters location rather than bill-to/ship-to.",
       "reference_chunk_ids": [
-        2551,
-        2516
+        2549,
+        2550,
+        2551
       ],
       "generated": {
-        "answer": "The chunks do not contain the information needed to answer this question.",
-        "citations": [],
-        "refused": true,
+        "answer": "Revenue from sales to customers headquartered outside of the United States accounted for 31% of total revenue for fiscal year 2026 [chunk_2551]. Additionally, it is mentioned that 76% of Data Center revenue from Taiwan-headquartered customers was attributed to end customers based in the United States and Europe [chunk_2551].",
+        "citations": [
+          2551
+        ],
+        "refused": false,
         "retrieved_chunk_ids": [
           2551,
           2408,
@@ -784,14 +787,16 @@
         ],
         "mode": "hybrid",
         "top_k": 10,
+        "decomposed": false,
+        "entities": [],
         "timing_ms": {
-          "retrieve": 229.7,
-          "generate": 703.4
+          "retrieve": 2147.4,
+          "generate": 2844.2
         },
         "usage": {
-          "prompt_tokens": 3934,
-          "completion_tokens": 33,
-          "total_tokens": 3967
+          "prompt_tokens": 4269,
+          "completion_tokens": 91,
+          "total_tokens": 4360
         }
       }
     },
