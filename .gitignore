@@ -9,3 +9,6 @@ data/parsed/
 .DS_Store
 *.log
 qdrant_data/
+
+data/chunks.jsonl.pre_table_fix
+qdrant_data.pre_table_fix/
