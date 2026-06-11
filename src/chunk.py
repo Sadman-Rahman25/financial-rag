@@ -77,7 +77,7 @@ def fix_empty_table_cells(text: str) -> str:
     prev = None
     while prev != text:
         prev = text
-        text = re.sub(r"\|\s+\|", "| — |", text)
+        text = re.sub(r"\|[^\S\n]+\|", "| — |", text)
     return text
 
 
