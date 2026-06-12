@@ -3,12 +3,10 @@ venv/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-qdrant_data/
 data/raw/
 data/parsed/
 .DS_Store
 *.log
-qdrant_data/
-
 data/chunks.jsonl.pre_table_fix
 qdrant_data.pre_table_fix/
+app.py.stage6_backup

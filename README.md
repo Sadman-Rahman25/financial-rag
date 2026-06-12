@@ -156,7 +156,7 @@ The blue info box shows the entity-detection router firing. The two expanders be
 <details>
 <summary><b>Why decomposition over just increasing top-K</b></summary>
 
-The naïve fix for the q13 refusal would have been "retrieve top-20 instead of top-10 and hope MSFT chunks bubble up." We measured this. The dense+BM25 hybrid favored NVDA for "data center" vocabulary so heavily that even at top-20, six of the top results were NVDA. The LLM was correctly refusing because zero Microsoft chunks were in its context.
+The naïve fix for the q13 refusal would have been "retrieve top-20 instead of top-10 and hope MSFT chunks bubble up." I tested this. The dense+BM25 hybrid favored NVDA for "data center" vocabulary so heavily that even at top-20, six of the top results were NVDA. The LLM was correctly refusing because zero Microsoft chunks were in its context.
 
 Decomposition fixes the root cause: balanced retrieval across entities, with a ticker filter forcing 5 chunks per company. Total prompt tokens stay flat with the non-decomposed baseline, so the cost is a single extra LLM synthesis call.
 </details>
