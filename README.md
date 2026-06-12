@@ -29,8 +29,8 @@ Question-answering over SEC 10-K filings for Apple, Microsoft, NVIDIA, Tesla, an
 - **Hallucination defense via an ENTITY MATCH rule** in the system prompt — caught a *Google-revenue-from-Meta-chunk* attribution error during spot-check that would have shipped silently otherwise.
 - Built in 14 days on an 8GB-RAM Windows laptop with **no GPU**, **$0 spend** (open-weight models + free tiers).
 
-**Live demo:** _coming on launch_ <!-- DEMO_LINK -->
-**Walkthrough video:** _coming on launch_ <!-- VIDEO_LINK -->
+**[▶ Try the live demo](https://huggingface.co/spaces/25Sad/financial-rag)** <!-- DEMO_LINK -->
+**Demo video:** _coming soon_ <!-- VIDEO_LINK -->
 
 ## The problem
 
