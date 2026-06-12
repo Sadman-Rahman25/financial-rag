@@ -10,3 +10,6 @@ data/parsed/
 data/chunks.jsonl.pre_table_fix
 qdrant_data.pre_table_fix/
 app.py.stage6_backupqdrant_data/.lock
+
+app.py.stage6_backup
+qdrant_data/.lock
