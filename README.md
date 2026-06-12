@@ -6,7 +6,7 @@ colorTo: blue
 sdk: docker
 app_port: 8501
 pinned: false
-short_description: RAG over SEC 10-K filings with hybrid retrieval + decomposition
+short_description: Hybrid RAG over SEC 10-K filings with decomposition
 ---
 
 <!--
