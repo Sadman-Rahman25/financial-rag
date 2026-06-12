@@ -1,3 +1,14 @@
+---
+title: Financial RAG
+emoji: ◆
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 8501
+pinned: false
+short_description: RAG over SEC 10-K filings with hybrid retrieval + decomposition
+---
+
 <!--
 TODO Day 14 - replace placeholders before launch:
   1. Search for DEMO_LINK and replace "_coming on launch_" with the HF Spaces URL
