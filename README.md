@@ -1,6 +1,6 @@
 ---
 title: Financial RAG
-emoji: ◆
+emoji: 🔷
 colorFrom: indigo
 colorTo: blue
 sdk: docker
